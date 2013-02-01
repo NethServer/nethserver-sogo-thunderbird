@@ -1,0 +1,44 @@
+#!/usr/bin/perl -w
+
+#----------------------------------------------------------------------
+# copyright (C) 1999-2005 Mitel Networks Corporation
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
+#
+#----------------------------------------------------------------------
+
+package esmith;
+
+use strict;
+use Errno;
+use Cwd;
+use esmith::ConfigDB;
+use esmith::templates;
+
+my $oldpath = getcwd();
+
+foreach (glob("/home/httpd/html/sogo/sogo-integrator*.xpi")) {
+    unlink($_);
+}
+
+chdir("/home/sogo/sogo-integrator-thunderbird3");
+system("zip -qr /home/httpd/html/sogo/thunderbird3/sogo-integrator-3.106pre1-sogo.xpi .");
+chdir($oldpath);
+
+chdir("/home/sogo/sogo-integrator-thunderbird10");
+system("zip -qr /home/httpd/html/sogo/thunderbird10/sogo-integrator-10.0.3-sogo.xpi .");
+chdir($oldpath);
+
+exit (0);

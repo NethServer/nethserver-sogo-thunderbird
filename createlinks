@@ -1,0 +1,34 @@
+#!/usr/bin/perl -w
+
+use esmith::Build::CreateLinks qw(:all);
+
+
+templates2events(
+    "/home/sogo/sogo-integrator-thunderbird3/chrome/content/extensions.rdf",
+    qw(bootstrap-console-save domain-modify sogo-thunderbird-update)
+);
+
+templates2events(
+    "/home/sogo/sogo-integrator-thunderbird10/chrome/content/extensions.rdf",
+    qw(bootstrap-console-save domain-modify sogo-thunderbird-update)
+);
+
+templates2events(
+    "/home/sogo/sogo-integrator-thunderbird3/defaults/preferences/site.js",
+    qw(bootstrap-console-save domain-modify sogo-thunderbird-update)
+);
+
+templates2events(
+    "/home/sogo/sogo-integrator-thunderbird10/defaults/preferences/site.js",
+    qw(bootstrap-console-save domain-modify sogo-thunderbird-update)
+);
+
+event_link("sogo-integrator-zipfile", "bootstrap-console-save", "80");
+event_link("sogo-integrator-zipfile", "domain-modify", "80");
+event_link("sogo-integrator-zipfile", "sogo-thunderbird-update", "80");
+
+templates2events("/etc/httpd/conf/httpd.conf", qw(sogo-thunderbird-update));
+safe_symlink("sigusr1", "root/etc/e-smith/events/sogo-thunderbird-update/services2adjust/httpd-e-smith");
+safe_symlink("thunderbird3/sogo-integrator-3.106pre1-sogo.xpi", "root/home/httpd/html/sogo/tb3-sogo-integrator.xpi");
+safe_symlink("thunderbird10/sogo-integrator-10.0.3-sogo.xpi", "root/home/httpd/html/sogo/tb10-sogo-integrator.xpi");
+
