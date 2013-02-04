@@ -8,9 +8,14 @@ Source0: %{name}-%{version}.tar.gz
 BuildArch: noarch
 
 Requires: nethserver-sogo
+Requires: nethserver-httpd
+Requires: nethserver-php
+Requires: sogo-frontends
+Requires: zip
 
 BuildRequires: perl
 BuildRequires: nethserver-devtools 
+
 
 %description
 SOGo Thunderbird plugin for NethServer
