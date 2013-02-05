@@ -11,7 +11,7 @@ Requires: nethserver-sogo
 Requires: nethserver-httpd
 Requires: nethserver-php
 Requires: sogo-frontends
-Requires: zip
+Requires: zip, unzip
 
 BuildRequires: perl
 BuildRequires: nethserver-devtools 
