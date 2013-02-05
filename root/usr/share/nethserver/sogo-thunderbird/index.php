@@ -13,38 +13,38 @@
 	  </p>
 		
           <h2>Prima dell'installazione</h2>
-	  
-	  <p>Server</p>
-	  <ul>
-	    <li> Durante l'installazione, SOGO Integrator cercher&agrave di
-	    collegarsi all'indirizzo
-	    <a href="https://<?php echo $_SERVER['SERVER_NAME']?>">https://<?php echo $_SERVER['SERVER_NAME']?></a>. 
-	    Accertarsi che sia 
-	    correttamente risolto e raggiungibile dal PC su cui
-	    si sta installando SOGo Integrator.</li>
-	  </ul>
+	  <dl>
+	    <dt>Server</dt>
+	    <dd>
+	      Durante l'installazione, SOGO Integrator cercher&agrave di
+	      collegarsi all'indirizzo
+	      <a href="https://<?php echo $_SERVER['SERVER_NAME']?>">https://<?php echo $_SERVER['SERVER_NAME']?></a>. 
+	      Accertarsi che sia 
+	      correttamente risolto e raggiungibile dal PC su cui
+	      si sta installando SOGo Integrator.
+	    </dd>
 
-	  <p>Account predefinito</p>
-          <ul>
-	    <li>L'utente utilizzato per la connessione a SOGo
-	    sar&agrave lo stesso dell'account IMAP configurato come
-	    predefinito su Thunderbird e verr&agrave richiesta la
-	    password per tale utente: controllare quindi che l'account
-	    predefinito sia quello di NethService.</li>
-          </ul>
+	    <dt>Account predefinito</dt>
+            <dd>
+	      L'utente utilizzato per la connessione a SOGo
+	      sar&agrave lo stesso dell'account IMAP configurato come
+	      predefinito su Thunderbird e verr&agrave richiesta la
+	      password per tale utente: controllare quindi che l'account
+	      predefinito sia quello di NethService.
+            </dd>
 
-	  <p>Certificato</p>
-          <ul>
-            <li>Prima di procedere all'installazione, &egrave
-            necessario aggiungere manualmente un'eccezione nei
-            certificati riconosciuti da Thunderbird. Cliccare su
-            <code>Strumenti &gt; Opzioni &gt; Avanzate &gt;
-            Certificati &gt; Mostra certificati &gt; Server &gt;
-            Aggiungi eccezione</code>, inserendo l'indirizzo
-            <code>https://<?php echo $_SERVER['SERVER_NAME']
-            ?></code>.
-          </ul>
-			
+	    <dt>Certificato</dt>
+            <dd>
+              Prima di procedere all'installazione, &egrave
+              necessario aggiungere manualmente un'eccezione nei
+              certificati riconosciuti da Thunderbird. Cliccare su
+              <code>Strumenti &gt; Opzioni &gt; Avanzate &gt;
+              Certificati &gt; Mostra certificati &gt; Server &gt;
+              Aggiungi eccezione</code>, inserendo l'indirizzo
+              <code>https://<?php echo $_SERVER['SERVER_NAME']
+              ?></code>.
+            </dd>
+	  </dl>
 
           <h2>Scaricare SOGo Integrator</h2>
 	  <p>Scegliere la versione di SOGo Integrator specifica per</p>
