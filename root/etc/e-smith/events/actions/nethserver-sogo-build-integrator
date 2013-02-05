@@ -111,4 +111,4 @@ foreach my $xpiFile (keys %{$packages}) {
 }
 
 
-exit ($errors == 0) ? 0 : 1;
+exit ($errors == 0 ? 0 : 1);
