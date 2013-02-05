@@ -5,10 +5,18 @@
   xmlns:em="http://www.mozilla.org/2004/em-rdf#"
   xmlns:NC="http://home.netscape.com/NC-rdf#">
   <Seq about="http://inverse.ca/sogo-integrator/extensions"
-{
-     my $sn = $sogod{SystemName} || "$SystemName.$DomainName";
-     $OUT.="\tisi:updateURL=\"https://$sn/sogo-plugins/updates.php?plugin=%ITEM_ID%&amp;version=%ITEM_VERSION%&amp;platform=%PLATFORM%\">";
-}
+       isi:updateURL="{
+    #
+    # extensions.rdf.tb3
+    #
+
+    my $hostname = $sogod{SystemName} || "$SystemName.$DomainName";
+    $OUT = 'https://' . $hostname. '/sogo-thunderbird/updates.php?' . join('&amp;', qw(
+    	 plugin=%ITEM_ID%
+	 version=%ITEM_VERSION%
+	 platform=%PLATFORM%
+    ));
+}">
     <li>
       <Description
         em:id="sogo-integrator@inverse.ca"
