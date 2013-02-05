@@ -35,6 +35,9 @@ my $destDir = '/var/lib/nethserver/sogo-thunderbird';
 
 my $packages = {};
 
+# Delete any sogo-integrator xpi package in $destDir:
+unlink $_ foreach(File::Glob::glob($destDir . '/sogo-integrator-*.xpi'));
+
 foreach (File::Glob::glob($sourceDir . '/sogo-integrator-*.xpi')) {
 
     my $xpiFile = File::Basename::basename($_);
@@ -93,11 +96,6 @@ foreach my $xpiFile (keys %{$packages}) {
     # Create the target filename with majorVersion suffix:
     my $targetFile = join('/', $destDir, sprintf('sogo-integrator-%d.xpi', $packages->{$xpiFile}->{'majorVersion'}));
  
-    # Remove the targetFile if already exists:
-    if ( -f $targetFile ) {
-	unlink $targetFile;
-    }
-
     # Change to temporary directory and create the $targetFile archive
     chdir $workDir;          
     system('/usr/bin/zip', '-qr', $targetFile, '.');
