@@ -8,6 +8,7 @@
  *  Copyright (C) 2013 Nethesis srl
  *
  * Author: Federico Simoncelli <federico@nethesis.it>
+ *         Davide Principi <davide.principi@nethesis.it>
  *
  * This file is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,72 +26,102 @@
  * Boston, MA 02111-1307, USA.
  */
 
-$pluginid = @$_REQUEST['plugin'];
-$platform = @$_REQUEST['platform'];
-$appversion = @$_REQUEST['appversion'];
+define('SOURCE_DIR', '/usr/share/nethserver/sogo-frontends');
 
-/* plugins constants */
-$plugins_filename = array(
-	"sogo-connector@inverse.ca" => "sogo-connector-*.xpi",
-	"sogo-integrator@inverse.ca" => "sogo-integrator-*-sogo.xpi",
-	"{e2fda1a4-762b-4020-b5ad-a41df1933103}" => "$platform/lightning-*-inverse.xpi",
+//
+// Build the requirements:
+// 
+$req['plugin'] = isset($_GET['plugin']) ? $_GET['plugin'] : false;
+$req['platform'] = isset($_GET['platform']) ? $_GET['platform'] : false;
+$req['appversion'] = isset($_GET['appversion']) ? $_GET['appversion'] : false;
+$req['version'] = isset($_GET['version']) ? $_GET['version'] : false;
+$req['application'] = 'thunderbird';
+
+//
+// If missing, infer appversion from user-agent:
+//
+if ($req['appversion'] === false) {
+  $uaMatch = array();
+  preg_match("/Thunderbird\/(\w+)/", $_SERVER['HTTP_USER_AGENT'], $uaMatch);
+
+  if (count($uaMatch) != 2) {
+    header("Content-type: text/plain; charset=utf-8", true, 404);
+    exit("Unsupported client.\n");
+  }
+
+  // set appversion requirement:
+  $req['appversion'] = $uaMatch[1];
+}
+
+//
+// Parse MANIFEST-* files
+//
+
+$headers = array(
+		 'plugin',
+		 'file',
+		 'version',
+		 'platform',
+		 'application',
+		 'minversion',
+		 'maxversion'
 );
-$plugins_vermatch = array(
-	"sogo-connector@inverse.ca" => "/sogo-connector-(.*)\.xpi$/",
-	"sogo-integrator@inverse.ca" => "/sogo-integrator-(.*)-sogo\.xpi$/",
-	"{e2fda1a4-762b-4020-b5ad-a41df1933103}" => "/lightning-(.*)-inverse\.xpi$/",
-);
 
-/* appversion based on user-agent */
-if (empty($appversion)) {
-	preg_match("/Thunderbird\/(\w+)/", $_SERVER['HTTP_USER_AGENT'], $expmatch);
+$metadata = array();
 
-	if (count($expmatch) != 2) {
-		header("Content-type: text/plain; charset=utf-8", true, 404);
-	        exit("Unsupported application.\n");
-	}
+foreach(glob(SOURCE_DIR . '/MANIFEST-*.tsv') as $manifestFile) {
+  $fh = fopen($manifestFile, 'r');  
+  while($fields = fgetcsv($fh, 4096, "\t", '"', '\\')) {
+    $row = array();
+    foreach($headers as $headerIndex => $headerName) {
+      $row[$headerName] = $fields[$headerIndex];
+    }
 
-	$appversion = $expmatch[1];
+    //
+    // Check if request matches the current row:
+    // 
+
+    foreach(array('plugin', 'application', 'platform') as $key) {
+
+      // skip field check if field is not requested:
+      if( $req[$key] === false ) {
+	continue;
+      }
+
+      // skip row if field does not match request:
+      if($req[$key] != $row[$key]) {
+	   continue 2;
+      }      
+    }
+
+    // For sogo-integrator plugin only, set path to "integrator",
+    // where dynamically generated XPI are put by
+    // nethserver-sogo-build-integrator action:
+    if($row['plugin'] === 'sogo-integrator@inverse.ca') {
+      $row['path'] = 'integrator';
+    } else {
+      // default path to pre-packaged files:
+      $row['path'] = 'frontends';
+    }
+
+    $metadata[] = $row;
+  }
+  fclose($fh);
 }
 
-/* check plugin request */
-if (!array_key_exists($pluginid, $plugins_filename)) {
-	header("Content-type: text/plain; charset=utf-8", true, 404);
-	exit("Plugin not found.\n");
+#header("Content-type: text/plain; charset=utf-8");
+#print_r($req);
+#print_r($metadata);
+#exit;
+
+if(count($metadata) === 0) {
+    header("Content-type: text/plain; charset=utf-8", true, 404);
+    echo "No packages found.\n";
+    exit;
 }
 
-if ($appversion[0] == '2') { /* Thunderbird 2 */
-	$plugins_globpath = "thunderbird2/" . $plugins_filename[$pluginid];
-	$plugins = array(
-		"minVersion" => "1.5",
-		"maxVersion" => "2.0.*"
-	);
-} else if ($appversion[0] == '3') { /* Thunderbird 3 */
-	$plugins_globpath = "thunderbird3/" . $plugins_filename[$pluginid];
-	$plugins = array(
-		"minVersion" => "3.0",
-		"maxVersion" => "3.1.*"
-	);
-} else if ($appversion == '10') { /* Thunderbird 10 */
-	$plugins_globpath = "thunderbird10/" . $plugins_filename[$pluginid];
-	$plugins = array(
-		"minVersion" => "10.0",
-		"maxVersion" => "10.1.*"
-	);
-} else {
-	header("Content-type: text/plain; charset=utf-8", true, 404);
-        exit("Unsupported application.\n");
-}
-
-$plugins["updateLink"] = array();
-
-foreach (glob($plugins_globpath) as $pluginpath) {
-	if (preg_match($plugins_vermatch[$pluginid], $pluginpath, $expmatch) > 0) {
-		$plugins["updateLink"][$expmatch[1]] = $pluginpath;
-	}
-}
-
-$plugins_baseurl = "http://" . $_SERVER["HTTP_HOST"] . "/sogo-plugins";
+$updateLinkPrefix = "https://" . $_SERVER["SERVER_NAME"] . "/sogo-thunderbird";
+$thunderbirdId = '{3550f703-e582-4d05-9a08-453d09bdfdc6}';
 
 header("Content-type: text/xml; charset=utf-8");
 echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
@@ -98,25 +129,29 @@ echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
 <!DOCTYPE RDF>
 <RDF xmlns="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
      xmlns:em="http://www.mozilla.org/2004/em-rdf#">
-  <Description about="urn:mozilla:extension:<?php echo $pluginid; ?>">
-    <em:updates>
-      <Seq>
-<?php foreach ($plugins["updateLink"] as $version => $filepath) { ?>
-        <li>
-          <Description>
-            <em:version><?php echo $version; ?></em:version>
-            <em:targetApplication>
-              <Description>
-                <em:id>{3550f703-e582-4d05-9a08-453d09bdfdc6}</em:id>
-                <em:minVersion><?php echo $plugins["minVersion"]; ?></em:minVersion>
-                <em:maxVersion><?php echo $plugins["maxVersion"]; ?></em:maxVersion>
-                <em:updateLink><?php echo $plugins_baseurl . "/" . $filepath; ?></em:updateLink>
-              </Description>
-            </em:targetApplication>
-          </Description>
-        </li>
-<?php } ?>
-      </Seq>
-    </em:updates>
-  </Description>
+  <Description about="urn:mozilla:extension:<?php echo htmlspecialchars($req['plugin']); ?>">
+  <em:updates>
+    <Seq><?php foreach ($metadata as $item): ?>
+    <li>
+      <Description>
+	<em:version><?php echo htmlspecialchars($item['version']); ?></em:version>
+	<em:targetApplication>
+	  <Description>
+	    <em:id><?php echo htmlspecialchars($thunderbirdId); ?></em:id>
+	    <em:minVersion><?php echo htmlspecialchars($item["minversion"]); ?></em:minVersion>
+	    <em:maxVersion><?php echo htmlspecialchars($item["maxversion"]); ?></em:maxVersion>
+	    <em:updateLink><?php 
+                          echo htmlspecialchars(implode('/', array(
+								   $updateLinkPrefix, 
+								   $item['path'], 
+								   $item['file'])
+							)); 
+	    ?></em:updateLink>
+	  </Description>
+	</em:targetApplication>
+      </Description>
+    </li>
+    <?php endforeach; ?></Seq>
+  </em:updates>
+</Description>
 </RDF>
