@@ -62,7 +62,7 @@ foreach my $xpiFile (keys %{$packages}) {
     # Create the temporary directory $workDir:
     my $workDir = File::Temp->newdir(
 	'/var/tmp/sogo-integrator.XXXXXXXX', 
-	CLEANUP => 0)->dirname;
+	CLEANUP => 1)->dirname;
 
     my $source = $packages->{$xpiFile}->{'source'};
     my %outputTemplates = %{$packages->{$xpiFile}->{'templates'}};
