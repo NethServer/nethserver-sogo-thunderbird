@@ -84,7 +84,12 @@ foreach(glob(SOURCE_DIR . '/MANIFEST-*.tsv') as $manifestFile) {
     foreach(array('plugin', 'application', 'platform') as $key) {
 
       // skip field check if field is not requested:
-      if( $req[$key] === false ) {
+      if($req[$key] === false) {
+	continue;
+      }
+
+      // skip field check if value is '*' (matches anything)
+      if($row[$key] === '*') {
 	continue;
       }
 
