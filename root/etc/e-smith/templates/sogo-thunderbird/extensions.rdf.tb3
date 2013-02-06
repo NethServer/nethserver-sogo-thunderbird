@@ -10,12 +10,13 @@
     # extensions.rdf.tb3
     #
 
-    my $hostname = $sogod{SystemName} || "$SystemName.$DomainName";
-    $OUT = 'https://' . $hostname. '/sogo-thunderbird/updates.php?' . join('&amp;', qw(
+    my $defaultUpdateUrl = 'https://' . join('.', $SystemName, $DomainName) . '/sogo-thunderbird/updates.php?' . join('&amp;', qw(
     	 plugin=%ITEM_ID%
 	 version=%ITEM_VERSION%
 	 platform=%PLATFORM%
     ));
+
+    $OUT = $sogotb{ThunderbirdUpdateUrl} || $defaultUpdateUrl;
 }">
     <li>
       <Description

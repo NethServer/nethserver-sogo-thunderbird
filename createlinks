@@ -10,6 +10,7 @@ event_templates('nethserver-sogo-thunderbird-update', qw(
 ));
 
 event_actions('nethserver-sogo-thunderbird-update', qw(
+    initialize-default-databases     00
     nethserver-sogo-thunderbird-conf 30
     nethserver-sogo-build-integrator 40
     runlevel-adjust 50
