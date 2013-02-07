@@ -7,11 +7,9 @@ URL: http://dev.nethesis.it/projects/nethserver-mail/wiki/%{name}
 Source0: %{name}-%{version}.tar.gz
 BuildArch: noarch
 
-Requires: nethserver-sogo
 Requires: nethserver-httpd
 Requires: nethserver-php
-Requires: sogo-frontends
-Requires: zip, unzip
+Requires: zip, unzip, patch
 
 BuildRequires: perl
 BuildRequires: nethserver-devtools 

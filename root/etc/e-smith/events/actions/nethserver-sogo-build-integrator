@@ -22,6 +22,7 @@
 
 use strict;
 use esmith::templates;
+use esmith::ConfigDB;
 use File::Temp;
 use File::Copy;
 use File::Basename;
@@ -32,43 +33,106 @@ my $event = shift;
 my $errors = 0;
 my $sourceDir = '/usr/share/nethserver/sogo-frontends';
 my $destDir = '/var/lib/nethserver/sogo-thunderbird';
+my $configDb = esmith::ConfigDB->open_ro() || die('Could not open ConfigDB');
+
+my $defaultUpdateUrl = 'http://' . 
+    join('.', $configDb->get_value('SystemName'), $configDb->get_value('DomainName')) . 
+    '/sogo-thunderbird/updates.php?' . 
+    join('&amp;', qw(
+    	 plugin=%ITEM_ID%
+	 version=%ITEM_VERSION%
+	 platform=%PLATFORM%
+    ));
+
+# updateURL is passed to patch templates:
+my $updateURL = $configDb->get_prop('sogotb', 'ThunderbirdUpdateUrl') || $defaultUpdateUrl;
 
 my $packages = {};
+
+my @fieldHeaders = (
+    'file',
+    'pluginid',
+    'version',
+    'platform',
+    'appmatch',
+    'appminver',
+    'appmaxver'
+    );
+
 
 # Delete any sogo-integrator xpi package in $destDir:
 unlink $_ foreach(File::Glob::glob($destDir . '/sogo-integrator-*.xpi'));
 
-foreach (File::Glob::glob($sourceDir . '/sogo-integrator-*.xpi')) {
+#
+# Parse any MANIFEST file to extract integrator XPI metadata:
+#
+foreach (File::Glob::glob($sourceDir . '/MANIFEST-*.tsv')) {
 
-    my $xpiFile = File::Basename::basename($_);
+    open(FH, '<', $_);
 
-    # $1 is the major version number
-    $xpiFile =~ /^sogo-integrator-(\d+)/;
+    while(my $line = <FH>) {
+	chomp($line);
 
-    if($1 >= 3) {
-	$packages->{$xpiFile} = {
-	    'source' => $_,
-	    'majorVersion' => $1,
-	    'templates' => {
-		('extensions.rdf.tb' . $1) => 'chrome/content/extensions.rdf',
-		('site.js.tb' . $1) => 'defaults/preferences/site.js',
-	    }
-	};
+	# Skip comment lines:
+	if($line =~ /^#/) {
+	    next;
+	}
+
+	my %row;
+
+	@row{@fieldHeaders} = split("\t", $line);
+
+	# Calculate source file absolute path:
+	$row{'source'} = $sourceDir . '/' . $row{'file'};
+	
+	#
+	# Add xpi to $packages only if refers to Integrator
+	# plugin and the source file actually exists.
+	#
+	if ($row{'pluginid'} eq 'sogo-integrator@inverse.ca' 
+	    && -f $row{'source'} ) {	   
+
+	    # Calculate output file absolute path:
+	    $row{'output'} = $destDir . '/sogo-integrator-' . $row{'version'} . '.xpi';
+
+	    # Calculate patch file absolute path:
+	    $row{'patch'} = 'sogo-frontends/' . $row{'file'} . '.patch';
+
+	    $packages->{$row{'file'}} = \%row;
+	}
     }
+
+    close(FH);
 }
+
 
 foreach my $xpiFile (keys %{$packages}) {
 
     # Create the temporary directory $workDir:
     my $workDir = File::Temp->newdir(
 	'/var/tmp/sogo-integrator.XXXXXXXX', 
-	CLEANUP => 1)->dirname;
+	CLEANUP => 0)->dirname;
 
-    my $source = $packages->{$xpiFile}->{'source'};
-    my %outputTemplates = %{$packages->{$xpiFile}->{'templates'}};
+    my %item = %{$packages->{$xpiFile}};
+
+    # Instantiate the patch template:
+    my $patch = esmith::templates::processTemplate({
+	TEMPLATE_PATH => $item{'patch'},
+	OUTPUT_TYPE => 'string',
+	MORE_DATA => {
+	    updateURL => $updateURL
+	}
+    });
+
+    # If an empty patch is returned warn and skip to next XPI file:
+    if( ! $patch) {
+	warn "Empty patch returned for $xpiFile archive.\n";
+	$errors ++;
+	next;
+    }
 
     # Decompress source xpi to the temporary $workDir:
-    system('/usr/bin/unzip', '-qq', '-d', $workDir, $source);
+    system('/usr/bin/unzip', '-qq', '-d', $workDir, $item{'source'});
 
     if( $? != 0 ) {
 	warn "Failed to unzip $xpiFile properly!\n";
@@ -76,36 +140,24 @@ foreach my $xpiFile (keys %{$packages}) {
 	next;
     }
 
-    # Expand templates:
-    foreach my $templateName (keys %outputTemplates) {
-	my $outputFile = $workDir . '/' . $outputTemplates{$templateName};
-	
-	if ( -f $outputFile ) {
-	    esmith::templates::processTemplate({
-		TEMPLATE_PATH => 'sogo-thunderbird/' . $templateName,
-		OUTPUT_PREFIX => File::Basename::dirname($outputFile),
-		OUTPUT_FILENAME => File::Basename::basename($outputFile)
-	    });
-	} else {
-	    warn "Could not find $outputTemplates{$templateName} in $xpiFile archive\n";
-	    $errors ++;
-	}
-		
+    # Apply the patch:
+    open(PH, '|-', '/usr/bin/patch -p1 -s -d ' . $workDir);
+    print PH $patch;	
+    if( ! close(PH)) {
+	warn "Failed to apply patch to $xpiFile archive.\n";
+	$errors ++;
+	next;
     }
-
-    # Create the target filename with majorVersion suffix:
-    my $targetFile = join('/', $destDir, sprintf('sogo-integrator-%d.xpi', $packages->{$xpiFile}->{'majorVersion'}));
- 
-    # Change to temporary directory and create the $targetFile archive
+    	       
+    # Change to temporary directory and create the output archive
     chdir $workDir;          
-    system('/usr/bin/zip', '-qr', $targetFile, '.');
+    system('/usr/bin/zip', '-qr', $item{'output'}, '.');
     if( $? != 0 ) {
 	warn "Failed to zip $xpiFile properly!\n";
 	$errors ++;
 	next;
     }
 
-    
 }
 
 

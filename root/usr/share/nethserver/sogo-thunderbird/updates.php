@@ -31,93 +31,106 @@ define('SOURCE_DIR', '/usr/share/nethserver/sogo-frontends');
 //
 // Build the requirements:
 // 
-$req['plugin'] = isset($_GET['plugin']) ? $_GET['plugin'] : false;
+$req['pluginid'] = isset($_GET['plugin']) ? $_GET['plugin'] : false;
 $req['platform'] = isset($_GET['platform']) ? $_GET['platform'] : false;
-$req['appversion'] = isset($_GET['appversion']) ? $_GET['appversion'] : false;
 $req['version'] = isset($_GET['version']) ? $_GET['version'] : false;
-$req['application'] = 'thunderbird';
 
-//
-// If missing, infer appversion from user-agent:
-//
-if ($req['appversion'] === false) {
-  $uaMatch = array();
-  preg_match("/Thunderbird\/(\w+)/", $_SERVER['HTTP_USER_AGENT'], $uaMatch);
+// HTTP_USER_AGENT can be overriden by 'ua' GET parameter, for debugging purposes:
+$req['ua'] = isset($_GET['ua']) ? $_GET['ua'] : $_SERVER['HTTP_USER_AGENT'];
 
-  if (count($uaMatch) != 2) {
-    header("Content-type: text/plain; charset=utf-8", true, 404);
-    exit("Unsupported client.\n");
-  }
+/* CLEANUP if ($req['ua'] === false) { */
+/*   $uaMatch = array(); */
+/*   preg_match("/Thunderbird\/(\w+)/", , $uaMatch); */
 
-  // set appversion requirement:
-  $req['appversion'] = $uaMatch[1];
-}
+/*   if (count($uaMatch) != 2) { */
+/*     header("Content-type: text/plain; charset=utf-8", true, 404); */
+/*     exit("Unsupported client.\n"); */
+/*   } */
+
+/*   // set appversion requirement: */
+/*   $req['appversion'] = $uaMatch[1]; */
+/* } */
 
 //
 // Parse MANIFEST-* files
 //
-
 $headers = array(
-		 'plugin',
-		 'file',
-		 'version',
-		 'platform',
-		 'application',
-		 'minversion',
-		 'maxversion'
-);
+    'file',
+    'pluginid',
+    'version',
+    'platform',
+    'appmatch',
+    'appminver',
+    'appmaxver'
+    );
 
 $metadata = array();
 
 foreach(glob(SOURCE_DIR . '/MANIFEST-*.tsv') as $manifestFile) {
-  $fh = fopen($manifestFile, 'r');  
-  while($fields = fgetcsv($fh, 4096, "\t", '"', '\\')) {
-    $row = array();
-    foreach($headers as $headerIndex => $headerName) {
-      $row[$headerName] = $fields[$headerIndex];
-    }
+    $fh = fopen($manifestFile, 'r');  
+    while($fields = fgetcsv($fh, 4096, "\t", '"', '\\')) {
 
-    //
-    // Check if request matches the current row:
-    // 
+        // Skip commented lines:
+        if(substr($fields[0], 0, 1) === '#') {
+            continue;
+        }
+    
+        // Fill the row hash:
+        $row = array();
+        foreach($headers as $headerIndex => $headerName) {
+            $row[$headerName] = $fields[$headerIndex];
+        }
+       
+        // Check version matches:
+        $matchCode = preg_match('|' . $row['appmatch'] . '|', $req['ua']);
 
-    foreach(array('plugin', 'application', 'platform') as $key) {
+        if($matchCode === FALSE) {
+            // this is an error, and must be logged to syslog:
+            error_log(sprintf("%s invalid perl-regexp pattern: %s", __FILE__, $row['appmatch']));
+        } elseif($matchCode === 0) {
+            // the pattern does not match, skip the row:
+            continue;
+        }
 
-      // skip field check if field is not requested:
-      if($req[$key] === false) {
-	continue;
-      }
+        //
+        // Check if request matches the current row:
+        // 
+        foreach(array('pluginid', 'platform') as $key) {
 
-      // skip field check if value is '*' (matches anything)
-      if($row[$key] === '*') {
-	continue;
-      }
+            // skip field check if field is not requested:
+            if($req[$key] === false) {
+                continue;
+            }
 
-      // skip row if field does not match request:
-      if($req[$key] != $row[$key]) {
-	   continue 2;
-      }      
-    }
+            // skip field check if value is '*' (matches anything)
+            if($row[$key] === '*') {
+                continue;
+            }
 
-    // For sogo-integrator plugin only, set path to "integrator",
-    // where dynamically generated XPI are put by
-    // nethserver-sogo-build-integrator action:
-    if($row['plugin'] === 'sogo-integrator@inverse.ca') {
-      $row['path'] = 'integrator';
-    } else {
-      // default path to pre-packaged files:
-      $row['path'] = 'frontends';
-    }
+            // skip row if field does not match request:
+            if($req[$key] != $row[$key]) {
+                continue 2;
+            }      
 
-    $metadata[] = $row;
-  }
-  fclose($fh);
+        }
+
+        // For sogo-integrator plugin only, forge path and file name
+        // where dynamically generated XPI are put by
+        // nethserver-sogo-build-integrator action. The naming rule is
+        // hardcoded in sprintf() argument. See below:
+        if($row['pluginid'] === 'sogo-integrator@inverse.ca') {
+            $row['file'] = sprintf('sogo-integrator-%s.xpi', $row['version']);
+            $row['path'] = 'integrator';
+
+        } else {
+            // default path to pre-packaged files:
+            $row['path'] = 'frontends';
+        }
+
+        $metadata[] = $row;
 }
-
-#header("Content-type: text/plain; charset=utf-8");
-#print_r($req);
-#print_r($metadata);
-#exit;
+    fclose($fh);
+}
 
 if(count($metadata) === 0) {
     header("Content-type: text/plain; charset=utf-8", true, 404);
@@ -125,7 +138,7 @@ if(count($metadata) === 0) {
     exit;
 }
 
-$updateLinkPrefix = "https://" . $_SERVER["SERVER_NAME"] . "/sogo-thunderbird";
+$updateLinkPrefix = "http://" . $_SERVER["SERVER_NAME"] . "/sogo-thunderbird";
 $thunderbirdId = '{3550f703-e582-4d05-9a08-453d09bdfdc6}';
 
 header("Content-type: text/xml; charset=utf-8");
@@ -134,7 +147,7 @@ echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
 <!DOCTYPE RDF>
 <RDF xmlns="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
      xmlns:em="http://www.mozilla.org/2004/em-rdf#">
-  <Description about="urn:mozilla:extension:<?php echo htmlspecialchars($req['plugin']); ?>">
+  <Description about="urn:mozilla:extension:<?php echo htmlspecialchars($req['pluginid']); ?>">
   <em:updates>
     <Seq><?php foreach ($metadata as $item): ?>
     <li>
@@ -143,8 +156,8 @@ echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
 	<em:targetApplication>
 	  <Description>
 	    <em:id><?php echo htmlspecialchars($thunderbirdId); ?></em:id>
-	    <em:minVersion><?php echo htmlspecialchars($item["minversion"]); ?></em:minVersion>
-	    <em:maxVersion><?php echo htmlspecialchars($item["maxversion"]); ?></em:maxVersion>
+	    <em:minVersion><?php echo htmlspecialchars($item["appminver"]); ?></em:minVersion>
+	    <em:maxVersion><?php echo htmlspecialchars($item["appmaxver"]); ?></em:maxVersion>
 	    <em:updateLink><?php 
                           echo htmlspecialchars(implode('/', array(
 								   $updateLinkPrefix, 

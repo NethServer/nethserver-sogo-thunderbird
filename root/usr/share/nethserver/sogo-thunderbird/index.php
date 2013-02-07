@@ -54,7 +54,7 @@
 	          $fileName = basename($xpiFile);
 
 		  $matches = array();
-		  preg_match('/^sogo-integrator-(\d+).*/', $fileName, $matches);
+		  preg_match('/^sogo-integrator-([^-]+).*\.xpi/', $fileName, $matches);
 
 	          $title = 'Thunderbird ' . $matches[1];
 
