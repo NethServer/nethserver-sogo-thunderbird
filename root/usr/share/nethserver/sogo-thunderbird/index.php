@@ -45,7 +45,7 @@
               ?></code>.
             </dd>
 	  </dl>
-
+                  
           <h2>Scaricare SOGo Integrator</h2>
 	  <p>Scegliere la versione di SOGo Integrator specifica per</p>
 	  <ul><?php

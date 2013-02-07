@@ -38,19 +38,6 @@ $req['version'] = isset($_GET['version']) ? $_GET['version'] : false;
 // HTTP_USER_AGENT can be overriden by 'ua' GET parameter, for debugging purposes:
 $req['ua'] = isset($_GET['ua']) ? $_GET['ua'] : $_SERVER['HTTP_USER_AGENT'];
 
-/* CLEANUP if ($req['ua'] === false) { */
-/*   $uaMatch = array(); */
-/*   preg_match("/Thunderbird\/(\w+)/", , $uaMatch); */
-
-/*   if (count($uaMatch) != 2) { */
-/*     header("Content-type: text/plain; charset=utf-8", true, 404); */
-/*     exit("Unsupported client.\n"); */
-/*   } */
-
-/*   // set appversion requirement: */
-/*   $req['appversion'] = $uaMatch[1]; */
-/* } */
-
 //
 // Parse MANIFEST-* files
 //
