@@ -38,6 +38,9 @@ echo "%doc COPYING" >> %{name}-%{version}-filelist
 %defattr(-,root,root)
 
 %changelog
+* Tue Apr 30 2013 Davide Principi <davide.principi@nethesis.it> - 1.0.1-1.ns6
+- Support Full automatic package install/upgrade/uninstall support #1870
+
 * Tue Mar 19 2013 Giacomo Sanchietti <giacomo.sanchietti@nethesis.it> - 1.0.0-2.ns6
 - Update URL tag Refs #1654
 - Set minimum version requirements. #1653
