@@ -1,7 +1,7 @@
 Summary: SOGo Thunderbird plugin for NethServer
 Name: nethserver-sogo-thunderbird
-Version: @@VERSION@@
-Release: @@RELEASE@@
+Version: 1.1.1
+Release: 1
 License: GPL
 URL: %{url_prefix}/%{name} 
 Source0: %{name}-%{version}.tar.gz
