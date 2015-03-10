@@ -1,7 +1,7 @@
 Summary: SOGo Thunderbird plugin for NethServer
 Name: nethserver-sogo-thunderbird
-Version: 1.1.1
-Release: 1
+Version: 1.1.2
+Release: 1%{?dist}
 License: GPL
 URL: %{url_prefix}/%{name} 
 Source0: %{name}-%{version}.tar.gz
@@ -38,6 +38,9 @@ echo "%doc COPYING" >> %{name}-%{version}-filelist
 %defattr(-,root,root)
 
 %changelog
+* Tue Mar 10 2015 Giacomo Sanchietti <giacomo.sanchietti@nethesis.it> - 1.1.2-1
+- Wrong UpdateURL into sogo-integrator.xpi if hostname or domain is changed - Bug #2899 [NethServer]
+
 * Wed Feb 26 2014 Davide Principi <davide.principi@nethesis.it> - 1.1.1-1.ns6
 - English version of TB plugin download page.
 
