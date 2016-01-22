@@ -2,13 +2,6 @@
 
 use esmith::Build::CreateLinks qw(:all);
 
-#
-# update event
-#
-event_templates('nethserver-sogo-thunderbird-update', qw(
-    /etc/httpd/conf/httpd.conf
-));
-
 event_actions('nethserver-sogo-thunderbird-update', qw(
     initialize-default-databases     00
     nethserver-sogo-build-integrator 40
