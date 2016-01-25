@@ -7,13 +7,11 @@ URL: %{url_prefix}/%{name}
 Source0: %{name}-%{version}.tar.gz
 BuildArch: noarch
 
-Requires: nethserver-httpd >= 1.0.1-2
-Requires: nethserver-php >= 1.0.0
+Requires: nethserver-httpd
+Requires: nethserver-php
 Requires: zip, unzip, patch
 
-BuildRequires: perl
 BuildRequires: nethserver-devtools 
-
 
 %description
 SOGo Thunderbird plugin for NethServer
@@ -25,17 +23,14 @@ SOGo Thunderbird plugin for NethServer
 perl createlinks
 
 %install
-rm -rf $RPM_BUILD_ROOT
-(cd root; find . -depth -print | cpio -dump $RPM_BUILD_ROOT)
-%{genfilelist} $RPM_BUILD_ROOT > %{name}-%{version}-filelist
-echo "%doc COPYING" >> %{name}-%{version}-filelist
-
-%post
-
-%preun
+rm -rf %{buildroot}
+(cd root; find . -depth -print | cpio -dump %{buildroot})
+%{genfilelist} %{buildroot} > %{name}-%{version}-filelist
 
 %files -f %{name}-%{version}-filelist
 %defattr(-,root,root)
+%doc COPYING
+%dir %{_nseventsdir}/%{name}-update
 
 %changelog
 * Tue Mar 10 2015 Giacomo Sanchietti <giacomo.sanchietti@nethesis.it> - 1.1.2-1
